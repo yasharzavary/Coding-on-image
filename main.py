@@ -8,6 +8,7 @@ from tkinter import *
 from tkinter import messagebox
 from tkinter import filedialog
 import re
+from PIL import Image
 
 # main gui part
 root=Tk()
@@ -42,7 +43,7 @@ filename=''
 # button and menu part
 def browsefile(event):
     global filename
-    filename=filedialog.askopenfilename(title='select your pic',filetypes=(("jpg files","*.jpg*"),("all files","*.*")))
+    filename=filedialog.askopenfilename(title='select your pic',filetypes=(("png files","*.png*"),("all files","*.*")))
     urlLabel.config(text=filename)
 
 def comein(event):
@@ -78,7 +79,56 @@ def progress(event):
         
     # my coding part
     def startProgress(event):
-        pass
+        def producecode(newName):
+           for word in newName:
+               yield bin(ord(word))[2:]
+            
+        im=Image.open(filename, 'r')
+        copyIm=im.copy()
+        w, h=copyIm.size
+        pixelIm=list(copyIm.getdata())
+        for i in range(w*h):
+            pixelIm[i]=list(pixelIm[i])
+        ytemp=0
+        xtemp=0
+        codename=nameEntry.get()
+        for bincode in producecode(codename):
+            for i in range(len(bincode)):
+                if(xtemp%3==0):
+                    ytemp+=1
+                    xtemp=0
+                if(bincode[i]=='1'):
+                    if(pixelIm[ytemp][xtemp]%2==0):
+                        pixelIm[ytemp][xtemp]+=1
+                        xtemp+=1
+                    else:
+                        xtemp+=1
+                else:
+                    if(pixelIm[ytemp][xtemp]%2==1):
+                        pixelIm[ytemp][xtemp]+=1
+                        xtemp+=1
+                    else:
+                        xtemp+=1
+            if(xtemp%3==0):
+                    ytemp+=1
+                    xtemp=0
+            pixelIm[ytemp][xtemp]=255
+            xtemp+=1
+        if xtemp%3==0:
+            ytemp+=1
+            xtemp=0
+        pixelIm[ytemp][xtemp]=254
+        for i in range(w*h):
+            pixelIm[i]=tuple(pixelIm[i])
+        copyIm.putdata(pixelIm)
+        
+        copyIm.save(re.findall(r'(\w*).png', filename)[0]+'-encoded.png')
+        copyIm.close()
+        messagebox.showinfo('encoded result', 'picture successfully encoded')
+                
+        
+        
+        
         
     def comein(event):
         okButton.config(bg='gray')
@@ -89,13 +139,39 @@ def progress(event):
     okButton=Button(master=nameRoot, text='start progress')
     okButton.bind('<Enter>',comein)
     okButton.bind('<Leave>',comeout)
-    okButton.bind('<Button>',comeout)
+    okButton.bind('<Button>',startProgress)
     okButton.pack()
         
     nameRoot.mainloop()
 
 def dprogress(event):
-    pass
+    dfile=Image.open(filename, 'r')
+    rgbfile=list(dfile.getdata())
+    xtemp=0
+    ytemp=0
+    secData=''
+    bindata='0b'
+    while True:
+        if xtemp%3==0:
+            ytemp+=1
+            xtemp=0
+        if rgbfile[ytemp][xtemp]==254:
+            break
+        if(rgbfile[ytemp][xtemp]==255):
+            bindata=int(bindata, 2)
+            secData+=chr(bindata)
+            bindata='0b'
+            xtemp+=1
+            if xtemp%3==0:
+                ytemp+=1
+                xtemp=0
+        bindata+=str(rgbfile[ytemp][xtemp]%2)
+        if rgbfile[ytemp][xtemp]==254:
+            break
+        xtemp+=1
+    messagebox.showinfo('decode result', f'secret code:\n{secData}')
+            
+    
 
 
 onetimeclick=True
@@ -104,7 +180,7 @@ def select(event):
     if filename=='':
         messagebox.showerror('picture Error', 'you don\'t select a picture')
         return
-    elif re.search(r'.+jpg', filename):
+    elif re.search(r'.+png', filename):
         if onetimeclick:
             onetimeclick=False
             
@@ -168,13 +244,4 @@ exButton.pack()
 
 
 root.mainloop()
-
-
-
-
-
-
-
-
-
 
